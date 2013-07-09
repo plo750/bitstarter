@@ -7,7 +7,7 @@ app.get('/', function(request, response) {
   fs.readFile('index.html', 'utf8', function(err, data) {
 	if(err) throw err;
 	//response.send(data);
-	console.log(data + " " + data.length() );
+	console.log(data);
   });
   //response.send('Hello World 2!');
 });
