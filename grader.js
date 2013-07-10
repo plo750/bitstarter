@@ -25,7 +25,41 @@ var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
+var URLFILE_DEFAULT = "tmp.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var rest = require('restler');
+var util = require('util');
+var sleep = require('sleep');
+
+
+var getUrl = function( url, callback) {
+	//console.log("Url: " + url);
+	//console.log("Callback: " + callback);
+	rest.get( url).on( 'complete', function( result, response) {
+	    if( result instanceof Error ) {
+			console.log("Error: %s .", util.format( result.message));
+			process.exit(1);
+		} else {
+		 	//console.log("Callback: " + callback);
+		 	//console.log("Check: " + program.checks);
+		 	fs.writeFileSync( URLFILE_DEFAULT, result);
+		 	var checkJson = callback( URLFILE_DEFAULT, program.checks);
+		 	var outJson = JSON.stringify(checkJson, null, 4);
+	        console.log(outJson);
+		}
+	}); 
+};
+
+var assertUrlExists = function( inUrl) {
+	var url = inUrl.toString();
+	var regex = /(^http:\/\/\.*)/;
+	var result = url.match(regex);
+	if( result == null) {
+		console.log("Not a valid url %s. Exiting.", url);
+        process.exit(1); 
+	}
+	return url;	
+};
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -35,6 +69,7 @@ var assertFileExists = function(infile) {
     }
     return instr;
 };
+
 
 var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
@@ -62,14 +97,24 @@ var clone = function(fn) {
 };
 
 if(require.main == module) {
+    fs.unlink(URLFILE_DEFAULT);
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    	.option('-u, --url <http://.../index.html>', 'url of the index.html', clone(assertUrlExists));
+    program.parse( process.argv);
+    
+    //console.log("----File: " + program.file);
+    //console.log("----Url: " + program.url);
+    var checkJson;
+    if( program.url == null ) { 
+    	checkJson = checkHtmlFile( program.file, program.checks);
+    	var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
+    } else {
+    	getUrl( program.url, checkHtmlFile);    	
+    }
+    
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
-
