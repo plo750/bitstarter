@@ -97,7 +97,9 @@ var clone = function(fn) {
 };
 
 if(require.main == module) {
-    fs.unlink(URLFILE_DEFAULT);
+    if( fs.exists( URLFILE_DEFAULT) ) {
+    	fs.unlink(URLFILE_DEFAULT);
+    }
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
